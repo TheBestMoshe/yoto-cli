@@ -1,0 +1,22 @@
+{
+  "name": "yoto-cli",
+  "version": "0.1.0",
+  "description": "CLI for interacting with the Yoto API",
+  "type": "module",
+  "bin": {
+    "yoto": "./dist/yoto"
+  },
+  "scripts": {
+    "dev": "bun run src/cli.ts",
+    "build": "bun build src/cli.ts --compile --outfile dist/yoto",
+    "typecheck": "tsc --noEmit"
+  },
+  "devDependencies": {
+    "@types/bun": "latest",
+    "typescript": "^5"
+  },
+  "dependencies": {
+    "commander": "^14.0.2",
+    "zod": "^4.3.4"
+  }
+}
