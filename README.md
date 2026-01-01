@@ -31,48 +31,92 @@ npm install -g @thebestmoshe/yoto-cli --registry=https://npm.pkg.github.com
 ```bash
 # Authenticate
 yoto login
+yoto logout
+yoto status
+```
 
-# Playlists
-yoto playlists
-yoto playlist <cardId>
-yoto playlist:create "My Playlist" --description "Description"
-yoto playlist:edit <cardId> --title "New Title" --description "New desc" --author "Author"
-yoto playlist:delete <cardId>
+### Playlists
 
-# Chapters
-yoto chapter:add <cardId> "Chapter Title" --icon <iconId>
-yoto chapter:update <cardId> <chapterIdx> --title "New Title" --icon <iconId>
-yoto chapter:delete <cardId> <chapterIdx>
+```bash
+yoto playlist list
+yoto playlist show <cardId>
+yoto playlist create "My Playlist" --description "Description" --author "Author"
+yoto playlist edit <cardId> --title "New Title"
+yoto playlist delete <cardId>
+```
 
-# Tracks (easy way - creates chapter + track in one command)
-yoto track:import <cardId> "Title" ./audio.mp3
+### Chapters
 
-# Tracks (manual way - more control)
-yoto track:upload ./audio.mp3              # upload audio, get track URL
-yoto track:upload ./audio.mp3 --no-wait    # upload without waiting for transcoding
-yoto track:transcode-status <uploadId>     # check transcoding status
-yoto track:add <cardId> <chapterIdx> "Track Title" <trackUrl>
-yoto track:update <cardId> <chapterIdx> <trackIdx> --title "New Title"
-yoto track:update <cardId> <chapterIdx> <trackIdx> --icon <mediaId>
-yoto track:update <cardId> <chapterIdx> <trackIdx> --on-end repeat  # loop track
-yoto track:update <cardId> <chapterIdx> <trackIdx> --on-end stop    # pause after track
-yoto track:delete <cardId> <chapterIdx> <trackIdx>
+```bash
+# Add chapter (with optional audio file and icon)
+yoto chapter add <cardId> "Chapter Title"
+yoto chapter add <cardId> "Chapter Title" --file ./audio.mp3
+yoto chapter add <cardId> "Chapter Title" --file ./audio.mp3 --icon ./cover.png
 
-# Icons
-yoto icons                        # list public icons
-yoto icons --tag music            # filter by tag
-yoto icons:mine                   # list your custom icons
-yoto icons:upload my-icon.png     # upload custom icon (auto-resizes to 16x16)
+# Edit and delete
+yoto chapter edit <cardId> <chapterIdx> --title "New Title" --icon ./icon.png
+yoto chapter delete <cardId> <chapterIdx>
+```
 
-# Devices
-yoto devices
-yoto device <deviceId>
-yoto device:cmd <deviceId> play|pause|stop|next|previous
-yoto device:cmd <deviceId> volume <0-100>
+### Tracks
+
+```bash
+# Add track (accepts file path, yoto:# hash, or URL)
+yoto track add <cardId> <chapterIdx> "Track Title" ./audio.mp3
+yoto track add <cardId> <chapterIdx> "Track Title" "yoto:#abc123"
+yoto track add <cardId> <chapterIdx> "Track Title" ./audio.mp3 --icon ./cover.png
+
+# Edit track
+yoto track edit <cardId> <chapterIdx> <trackIdx> --title "New Title"
+yoto track edit <cardId> <chapterIdx> <trackIdx> --icon ./cover.png
+yoto track edit <cardId> <chapterIdx> <trackIdx> --on-end repeat  # loop track
+yoto track edit <cardId> <chapterIdx> <trackIdx> --on-end stop    # pause after track
+
+# Delete track
+yoto track delete <cardId> <chapterIdx> <trackIdx>
+
+# Upload audio without adding to playlist
+yoto track upload ./audio.mp3
+yoto track upload ./audio.mp3 --no-wait
+yoto track status <uploadId>
+```
+
+### Icons
+
+```bash
+yoto icon list                    # list public icons
+yoto icon list --tag music        # filter by tag
+yoto icon list --mine             # list your custom icons
+yoto icon upload ./my-icon.png    # upload custom icon (auto-resizes to 16x16)
+```
+
+### Devices
+
+```bash
+yoto device list
+yoto device show <deviceId>
+yoto device play <deviceId>
+yoto device pause <deviceId>
+yoto device stop <deviceId>
+yoto device next <deviceId>
+yoto device previous <deviceId>
+yoto device volume <deviceId> <0-100>
 ```
 
 Run `yoto --help` for full command list.
 
+## Smart File Detection
+
+The CLI automatically detects whether you're providing a file path or an existing ID:
+
+**Audio sources** (for `track add`):
+- `./song.mp3` or `/path/to/audio.m4a` → uploads and transcodes automatically
+- `yoto:#abc123` → uses existing uploaded audio
+- `https://...` → uses external URL
+
+**Icons** (for `--icon` option):
+- `./cover.png` or `/path/to/icon.jpg` → uploads automatically
+- `abc123def456` → uses existing mediaId
 
 ## Playlist Structure
 
@@ -90,14 +134,10 @@ Playlist (Card)
 ```
 
 - **Playlist (Card)**: The top-level container, linked to a physical Yoto card
-- **Chapter**: Corresponds to button presses on the Yoto player. Each chapter can contain one or more tracks.
-- **Track**: An audio file. Tracks within a chapter play sequentially.
+- **Chapter**: Corresponds to button presses on the Yoto player
+- **Track**: An audio file. Tracks within a chapter play sequentially
 
-**Most MYO cards use a simple 1:1 pattern** - one chapter per audio file. To add audio:
-1. Create a chapter: `yoto chapter:add <cardId> "Title"`
-2. Add the track: `yoto track:add <cardId> <chapterIdx> "Title" <trackUrl>`
-
-Or use the helper: `yoto track:import <cardId> "Title" ./audio.mp3` (uploads, transcodes, creates chapter & track)
+**Quick add**: Use `yoto chapter add <cardId> "Title" --file ./audio.mp3` to create a chapter with a track in one command.
 
 ## Development
 
