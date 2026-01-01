@@ -1,6 +1,6 @@
 {
   "name": "@thebestmoshe/yoto-cli",
-  "version": "0.1.0",
+  "version": "0.0.1",
   "description": "CLI for interacting with the Yoto API",
   "type": "module",
   "bin": {
