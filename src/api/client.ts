@@ -10,6 +10,7 @@ import {
   GetUserIconsResponseSchema,
   UploadIconResponseSchema,
   UploadUrlResponseSchema,
+  TranscodedAudioResponseSchema,
   GetDevicesResponseSchema,
   DeviceStatusSchema,
   type DeviceCodeResponse,
@@ -17,11 +18,13 @@ import {
   type GetContentResponse,
   type ListContentResponse,
   type CreateContentRequest,
+  type UpdateContentRequest,
   type DeleteContentResponse,
   type GetPublicIconsResponse,
   type GetUserIconsResponse,
   type UploadIconResponse,
   type UploadUrlResponse,
+  type TranscodedAudioResponse,
   type GetDevicesResponse,
   type DeviceStatus,
 } from "./schemas.ts";
@@ -223,7 +226,7 @@ export class YotoClient {
 
   async updateContent(
     cardId: string,
-    data: Omit<CreateContentRequest, "cardId">
+    data: Omit<UpdateContentRequest, "cardId">
   ): Promise<GetContentResponse> {
     return this.apiRequest("/content", GetContentResponseSchema, {
       method: "POST",
@@ -271,9 +274,10 @@ export class YotoClient {
     }
     const query = params.toString() ? `?${params}` : "";
 
-    const formData = new FormData();
-    const blob = new Blob([file]);
-    formData.append("file", blob, options?.filename || "icon.png");
+    const filename = options?.filename || "icon.png";
+    const mimeType = filename.endsWith(".png") ? "image/png"
+      : filename.endsWith(".gif") ? "image/gif"
+      : "image/jpeg";
 
     const response = await fetch(
       `${API_BASE_URL}/media/displayIcons/user/me/upload${query}`,
@@ -281,8 +285,9 @@ export class YotoClient {
         method: "POST",
         headers: {
           Authorization: `Bearer ${this.accessToken}`,
+          "Content-Type": mimeType,
         },
-        body: formData,
+        body: file,
       }
     );
 
@@ -324,6 +329,13 @@ export class YotoClient {
     if (!response.ok) {
       throw new Error(`Failed to upload file: ${response.status}`);
     }
+  }
+
+  async getTranscodedAudio(uploadId: string): Promise<TranscodedAudioResponse> {
+    return this.apiRequest(
+      `/media/upload/${uploadId}/transcoded?loudnorm=false`,
+      TranscodedAudioResponseSchema
+    );
   }
 
   // ============ Devices ============

@@ -28,6 +28,16 @@ export const AuthErrorSchema = z.object({
 
 // ============ Content Schemas ============
 
+const DisplaySchema = z.object({
+  icon16x16: z.string().optional(),
+}).nullable().optional();
+
+const TrackEventsSchema = z.object({
+  onEnd: z.object({
+    cmd: z.string().optional(), // "none" (continue), "stop" (pause/wait), "repeat" (loop)
+  }).optional(),
+}).optional();
+
 export const TrackSchema = z.object({
   key: z.string(),
   title: z.string(),
@@ -37,6 +47,11 @@ export const TrackSchema = z.object({
   type: z.string().optional(),
   trackUrl: z.string().optional(),
   icon: z.string().optional(),
+  overlayLabel: z.string().optional(),
+  display: DisplaySchema,
+  fileSize: z.number().optional(),
+  ambient: z.unknown().optional().nullable(),
+  events: TrackEventsSchema,
 });
 
 export const ChapterSchema = z.object({
@@ -45,6 +60,14 @@ export const ChapterSchema = z.object({
   duration: z.number().optional(),
   icon: z.string().optional(),
   tracks: z.array(TrackSchema),
+  overlayLabel: z.string().optional(),
+  display: DisplaySchema,
+  fileSize: z.number().optional(),
+  _originalFileName: z.string().optional(),
+  availableFrom: z.unknown().optional().nullable(),
+  ambient: z.unknown().optional().nullable(),
+  defaultTrackDisplay: z.unknown().optional().nullable(),
+  defaultTrackAmbient: z.unknown().optional().nullable(),
 });
 
 export const ContentConfigSchema = z.object({
@@ -150,6 +173,28 @@ export const UploadUrlResponseSchema = z.object({
   }),
 });
 
+export const TranscodedAudioResponseSchema = z.object({
+  transcode: z.object({
+    uploadId: z.string(),
+    uploadSha256: z.string(),
+    progress: z.object({
+      phase: z.string(), // "queued", "processing", "complete"
+      percent: z.number().optional(),
+    }).optional(),
+    transcodedSha256: z.string().optional(),
+    transcodedInfo: z.object({
+      duration: z.number().optional(),
+      codec: z.string().optional(),
+      format: z.string().optional(),
+      channels: z.string().optional(),
+      metadata: z.object({
+        title: z.string().optional(),
+        artist: z.string().optional(),
+      }).optional(),
+    }).optional(),
+  }),
+});
+
 // ============ Device Schemas ============
 
 export const DeviceSchema = z.object({
@@ -203,6 +248,7 @@ export type GetPublicIconsResponse = z.infer<typeof GetPublicIconsResponseSchema
 export type GetUserIconsResponse = z.infer<typeof GetUserIconsResponseSchema>;
 export type UploadIconResponse = z.infer<typeof UploadIconResponseSchema>;
 export type UploadUrlResponse = z.infer<typeof UploadUrlResponseSchema>;
+export type TranscodedAudioResponse = z.infer<typeof TranscodedAudioResponseSchema>;
 export type Device = z.infer<typeof DeviceSchema>;
 export type DeviceStatus = z.infer<typeof DeviceStatusSchema>;
 export type GetDevicesResponse = z.infer<typeof GetDevicesResponseSchema>;
@@ -215,4 +261,11 @@ export interface CreateContentRequest {
   title: string;
   content: Content;
   metadata?: ContentMetadata;
+}
+
+export interface UpdateContentRequest {
+  cardId?: string;
+  title: string;
+  content?: Partial<Content>;
+  metadata?: Partial<ContentMetadata>;
 }
