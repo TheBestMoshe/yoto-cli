@@ -119,6 +119,9 @@ export async function createPlaylist(
     content: {
       chapters: [],
       playbackType: "linear",
+      activity: "yoto_Player",
+      version: "1",
+      restricted: true,
     },
     metadata: {
       description: options.description,

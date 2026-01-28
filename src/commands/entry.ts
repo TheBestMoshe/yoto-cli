@@ -52,6 +52,8 @@ interface UploadResult {
   trackUrl?: string;
   sha256?: string;
   duration?: number;
+  format?: string;
+  channels?: string;
 }
 
 async function uploadAndTranscode(
@@ -100,6 +102,8 @@ async function uploadAndTranscode(
         trackUrl: `yoto:#${transcode.transcodedSha256}`,
         sha256: transcode.transcodedSha256,
         duration: transcode.transcodedInfo?.duration,
+        format: transcode.transcodedInfo?.format,
+        channels: transcode.transcodedInfo?.channels,
       };
     }
 
@@ -141,6 +145,8 @@ export async function addEntry(
   }
   const trackUrl = result.trackUrl;
   const duration = result.duration;
+  const format = result.format || "opus";
+  const channels = result.channels || "stereo";
 
   // Resolve icon (upload if file path, use directly if hash)
   const DEFAULT_ICON = "aUm9i3ex3qqAMYBv-i-O-pYMKuMJGICtR3Vhf289u2Q";
@@ -160,7 +166,8 @@ export async function addEntry(
     title,
     trackUrl,
     type: "audio",
-    format: "aac",
+    format,
+    channels,
     duration,
     fileSize,
     overlayLabel,
