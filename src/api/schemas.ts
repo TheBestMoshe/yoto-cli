@@ -178,7 +178,7 @@ export const TranscodedAudioResponseSchema = z.object({
     uploadId: z.string(),
     uploadSha256: z.string(),
     progress: z.object({
-      phase: z.string(),
+      phase: z.string(), // "queued", "processing", "complete"
       percent: z.number().optional(),
     }).passthrough().optional(),
     transcodedSha256: z.string().optional(),
@@ -187,6 +187,10 @@ export const TranscodedAudioResponseSchema = z.object({
       codec: z.string().optional(),
       format: z.string().optional(),
       channels: z.string().optional(),
+      metadata: z.object({
+        title: z.string().optional(),
+        artist: z.string().optional(),
+      }).optional(),
     }).passthrough().optional(),
   }).passthrough(),
 });
