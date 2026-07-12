@@ -214,6 +214,10 @@ export async function addTrack(
     trackUrl,
     type: "audio",
     duration: options.duration,
+    // `overlayLabel` mirrors the parent chapter's, same as `entry add` and the
+    // yoto.dev docs. Without it tracks play fine in the app/iOS but fail on
+    // physical players (skip-cycle through chapters). See #1.
+    overlayLabel: chapter.overlayLabel,
     icon: mediaId,
     display: mediaId ? { icon16x16: `yoto:#${mediaId}` } : undefined,
   };
