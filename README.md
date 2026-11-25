@@ -45,7 +45,7 @@ client ID for your own app:
 1. Create an app at [dashboard.yoto.dev](https://dashboard.yoto.dev) as a **Public Client**
 2. Add `http://127.0.0.1:8787/callback` as an Allowed Callback URL
    (use `--port` if you change the port, and register the matching URL)
-3. Allow the scopes `offline_access`, `user:content:manage`, `user:icons:manage`,
+3. Allow the scopes `offline_access`, `user:content:view`, `user:content:manage`, `family:library:view`, `user:icons:manage`,
    `family:devices:view` and `family:devices:control`
 4. Run `yoto login --client-id <YOUR_CLIENT_ID>` (or set `YOTO_CLIENT_ID`)
 

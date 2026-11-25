@@ -35,7 +35,9 @@ const API_AUDIENCE = "https://api.yotoplay.com";
 // Your app at https://dashboard.yoto.dev must allow these.
 export const DEFAULT_SCOPES = [
   "offline_access", // refresh token
-  "user:content:manage", // playlists, entries, chapters, tracks, uploads (includes user:content:view, user:icons:manage)
+  "user:content:view", // read playlists (not implied by user:content:manage)
+  "user:content:manage", // create/update playlists, entries, chapters, tracks, uploads
+  "family:library:view", // required alongside user:content:view to read cards
   "user:icons:manage", // icons
   "family:devices:view", // devices list/status
   "family:devices:control", // device commands
