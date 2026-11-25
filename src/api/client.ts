@@ -1,6 +1,5 @@
 import { z } from "zod";
 import {
-  DeviceCodeResponseSchema,
   TokenResponseSchema,
   AuthErrorSchema,
   GetContentResponseSchema,
@@ -13,7 +12,6 @@ import {
   TranscodedAudioResponseSchema,
   GetDevicesResponseSchema,
   DeviceStatusSchema,
-  type DeviceCodeResponse,
   type TokenResponse,
   type GetContentResponse,
   type ListContentResponse,
@@ -31,22 +29,46 @@ import {
 
 const AUTH_BASE_URL = "https://login.yotoplay.com";
 const API_BASE_URL = "https://api.yotoplay.com";
+const API_AUDIENCE = "https://api.yotoplay.com";
+
+// Scopes needed by the CLI's commands (https://yoto.dev/authentication/scopes/).
+// Your app at https://dashboard.yoto.dev must allow these.
+export const DEFAULT_SCOPES = [
+  "offline_access", // refresh token
+  "user:content:view", // read playlists (not implied by user:content:manage)
+  "user:content:manage", // create/update playlists, entries, chapters, tracks, uploads
+  "family:library:view", // required alongside user:content:view to read cards
+  "user:icons:manage", // icons
+  "family:devices:view", // devices list/status
+  "family:devices:control", // device commands
+].join(" ");
+
+function describeAuthError(data: unknown, fallback: string): string {
+  const parsed = AuthErrorSchema.safeParse(data);
+  if (!parsed.success) return fallback;
+  const { error, error_description } = parsed.data;
+  return error_description ? `${error}: ${error_description}` : error;
+}
 
 export interface YotoClientConfig {
   clientId: string;
   accessToken?: string;
   refreshToken?: string;
+  /** Called after tokens are refreshed so they can be persisted (refresh tokens are single-use). */
+  onTokensRefreshed?: (accessToken: string, refreshToken: string) => void | Promise<void>;
 }
 
 export class YotoClient {
   private clientId: string;
   private accessToken?: string;
   private refreshToken?: string;
+  private onTokensRefreshed?: YotoClientConfig["onTokensRefreshed"];
 
   constructor(config: YotoClientConfig) {
     this.clientId = config.clientId;
     this.accessToken = config.accessToken;
     this.refreshToken = config.refreshToken;
+    this.onTokensRefreshed = config.onTokensRefreshed;
   }
 
   setTokens(accessToken: string, refreshToken: string) {
@@ -62,55 +84,63 @@ export class YotoClient {
   }
 
   // ============ Authentication ============
+  //
+  // Yoto deprecated the OAuth device code flow for CLIs
+  // (https://yoto.dev/authentication/device-code-migration/). Logins now use
+  // the Authorization Code flow with PKCE over a loopback redirect
+  // (https://yoto.dev/authentication/headless-cli-auth/).
 
-  async initDeviceFlow(): Promise<DeviceCodeResponse> {
-    const response = await fetch(`${AUTH_BASE_URL}/oauth/device/code`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/x-www-form-urlencoded",
-      },
-      body: new URLSearchParams({
-        client_id: this.clientId,
-        scope: "profile offline_access openid",
-        audience: "https://api.yotoplay.com",
-      }),
-    });
-
-    const data = await response.json();
-
-    if (!response.ok) {
-      const error = AuthErrorSchema.safeParse(data);
-      throw new Error(
-        error.success
-          ? error.data.error_description || error.data.error
-          : "Failed to init device flow"
-      );
-    }
-
-    return DeviceCodeResponseSchema.parse(data);
+  buildAuthorizeUrl(params: {
+    redirectUri: string;
+    codeChallenge: string;
+    state: string;
+    scope?: string;
+  }): string {
+    const url = new URL(`${AUTH_BASE_URL}/authorize`);
+    url.search = new URLSearchParams({
+      audience: API_AUDIENCE,
+      scope: params.scope ?? DEFAULT_SCOPES,
+      response_type: "code",
+      client_id: this.clientId,
+      code_challenge: params.codeChallenge,
+      code_challenge_method: "S256",
+      redirect_uri: params.redirectUri,
+      state: params.state,
+    }).toString();
+    return url.toString();
   }
 
-  async pollForToken(deviceCode: string): Promise<TokenResponse> {
+  async exchangeAuthorizationCode(params: {
+    code: string;
+    codeVerifier: string;
+    redirectUri: string;
+  }): Promise<TokenResponse> {
     const response = await fetch(`${AUTH_BASE_URL}/oauth/token`, {
       method: "POST",
       headers: {
         "Content-Type": "application/x-www-form-urlencoded",
       },
       body: new URLSearchParams({
+        grant_type: "authorization_code",
         client_id: this.clientId,
-        grant_type: "urn:ietf:params:oauth:grant-type:device_code",
-        device_code: deviceCode,
+        code_verifier: params.codeVerifier,
+        code: params.code,
+        redirect_uri: params.redirectUri,
       }),
     });
 
-    const data = await response.json();
+    const data = await response.json().catch(() => null);
 
     if (!response.ok) {
-      const error = AuthErrorSchema.safeParse(data);
-      throw new Error(error.success ? error.data.error : "authorization_pending");
+      throw new Error(describeAuthError(data, "Token exchange failed"));
     }
 
     const tokens = TokenResponseSchema.parse(data);
+    if (!tokens.refresh_token) {
+      throw new Error(
+        "No refresh token returned. Make sure your Yoto app allows the offline_access scope."
+      );
+    }
     this.setTokens(tokens.access_token, tokens.refresh_token);
     return tokens;
   }
@@ -132,19 +162,16 @@ export class YotoClient {
       }),
     });
 
-    const data = await response.json();
+    const data = await response.json().catch(() => null);
 
     if (!response.ok) {
-      const error = AuthErrorSchema.safeParse(data);
-      throw new Error(
-        error.success
-          ? error.data.error_description || error.data.error
-          : "Failed to refresh token"
-      );
+      throw new Error(describeAuthError(data, "Failed to refresh token"));
     }
 
     const tokens = TokenResponseSchema.parse(data);
-    this.setTokens(tokens.access_token, tokens.refresh_token);
+    // Yoto refresh tokens are single-use; keep the old one only if no new one is issued.
+    this.setTokens(tokens.access_token, tokens.refresh_token ?? this.refreshToken);
+    await this.onTokensRefreshed?.(this.accessToken!, this.refreshToken!);
     return tokens;
   }
 

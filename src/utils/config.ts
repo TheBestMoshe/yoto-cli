@@ -30,8 +30,13 @@ export async function saveConfig(config: Config): Promise<void> {
 }
 
 export async function clearConfig(): Promise<void> {
+  // Keep the client ID so the next 'yoto login' doesn't need it again.
+  const existing = await loadConfig();
   await ensureConfigDir();
-  await writeFile(CONFIG_FILE, "{}");
+  await writeFile(
+    CONFIG_FILE,
+    JSON.stringify(existing?.clientId ? { clientId: existing.clientId } : {}, null, 2)
+  );
 }
 
 export function getConfigPath(): string {

@@ -30,10 +30,24 @@ npm install -g @thebestmoshe/yoto-cli --registry=https://npm.pkg.github.com
 
 ```bash
 # Authenticate
+yoto login --client-id <YOUR_CLIENT_ID>   # first time; the client ID is saved
 yoto login
 yoto logout
 yoto status
 ```
+
+#### Setting up login
+
+Yoto has [deprecated the device code flow](https://yoto.dev/authentication/device-code-migration/),
+so `yoto login` signs you in through your browser (OAuth + PKCE) and needs a
+client ID for your own app:
+
+1. Create an app at [dashboard.yoto.dev](https://dashboard.yoto.dev) as a **Public Client**
+2. Add `http://127.0.0.1:8787/callback` as an Allowed Callback URL
+   (use `--port` if you change the port, and register the matching URL)
+3. Allow the scopes `offline_access`, `user:content:view`, `user:content:manage`, `family:library:view`, `user:icons:manage`,
+   `family:devices:view` and `family:devices:control`
+4. Run `yoto login --client-id <YOUR_CLIENT_ID>` (or set `YOTO_CLIENT_ID`)
 
 ### Playlists
 

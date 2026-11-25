@@ -2,21 +2,12 @@ import { z } from "zod";
 
 // ============ Authentication Schemas ============
 
-export const DeviceCodeResponseSchema = z.object({
-  device_code: z.string(),
-  user_code: z.string(),
-  verification_uri: z.string(),
-  verification_uri_complete: z.string(),
-  expires_in: z.number(),
-  interval: z.number(),
-});
-
 export const TokenResponseSchema = z.object({
   access_token: z.string(),
   token_type: z.string(),
   expires_in: z.number(),
-  refresh_token: z.string(),
-  scope: z.string(),
+  refresh_token: z.string().optional(),
+  scope: z.string().optional(),
   id_token: z.string().optional(),
   expires_at: z.number().optional(),
 });
@@ -229,7 +220,6 @@ export const ApiErrorSchema = z.object({
 
 // ============ Inferred Types ============
 
-export type DeviceCodeResponse = z.infer<typeof DeviceCodeResponseSchema>;
 export type TokenResponse = z.infer<typeof TokenResponseSchema>;
 export type AuthError = z.infer<typeof AuthErrorSchema>;
 export type Track = z.infer<typeof TrackSchema>;
